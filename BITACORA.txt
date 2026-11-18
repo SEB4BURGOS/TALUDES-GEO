@@ -1,0 +1,62 @@
+BITACORA - Calibracion pagina web vs GEO5 (Estabilidad de taludes)
+Fecha: 2026-11-08
+
+CASO TAREA
+Perfil: (0,5) (15,5) (25,15) (35,15); modelo 0..40 m en X, base z=0
+Suelo: gamma=2 T/m3 (19,62 kN/m3), phi=33 deg, c=5 kPa
+Analisis: superficie circular, busqueda por grilla
+
+ESTADO GEO5 (version trial: no guarda ni exporta)
+- 20:11 GEO5 2026 abre; aviso Trial (no guarda, no exporta protocolos).
+- Abri la app 3 veces por error (3 instancias); el usuario dejo 1.
+- Ventana principal de GEO5 NO aparece en mis capturas (miniaturas negras).
+  PENDIENTE: ingresar datos y leer FS/centro/radio en GEO5.
+
+PAGINA WEB (Playwright, malla 30x30, 120 radios, 60 dovelas, autoajuste)
+- ERROR ENCONTRADO Y CORREGIDO: signo de deslizamiento invertido en taludes que
+  bajan hacia la izquierda (devolvia FS=99). Ahora: s = (cota_entrada < cota_salida) ? 1 : -1
+- phi=33: Bishop FS=1.088; Fellenius FS=1.025 (misma sup.); centro (12.19; 19.38); R=14.32;
+  entrada/salida x = 15.44 -> 25.82
+- phi=35: Bishop FS=1.152; Fellenius FS=1.099; centro (11.22; 20.97); R=15.82;
+  entrada/salida x = 15.83 -> 25.88
+
+POR COMPARAR CON GEO5: FS, centro, radio por metodo (Bishop, Fellenius, Spencer, M-P).
+
+--- RESULTADO GEO5 (foto del usuario, 21:54) ---
+GEO5 Bishop, grilla de busqueda pequena (aprox. x 12-17, z 13,5-18), phi=33, c=5, gamma=2 T/m3:
+  FS=1,12 (<1,50 NO ACEPTABLE); centro (13,54; 17,59); R=12,55; alfa1=7,33 deg; alfa2=78,08 deg
+  Fa=323,01 kN/m; Fp=361,07 kN/m; Ma=4055,07 kN*m/m; Mp=4532,90 kN*m/m
+  El centro critico queda en el borde superior-izquierdo de la grilla -> optimo limitado por la grilla.
+
+--- COMPARACION: MISMO CIRCULO EN LA PAGINA (Bishop, 40-200 dovelas) ---
+  gamma=19,62 kN/m3: FS=1,114; Ma=4073; Mp=4538   (GEO5: 1,12 / 4055 / 4533)  dif FS ~0,3 %
+  gamma=20,00 kN/m3: FS=1,110; Ma=4152             (se aleja de GEO5)
+  => conversion 1 T/m3 = 9,81 kN/m3 es la correcta. Fellenius (mismo circulo): 1,026.
+  Entrada x=25,82 coincide con GEO5 (alfa2=78,08 deg).
+  Pagina con malla amplia: FS=1,088, centro (12,19; 19,38) R=14,32 (fuera de la grilla de GEO5).
+
+PENDIENTE: ampliar la grilla en GEO5 (x 8-16, z 17-24) y comparar; Fellenius, Spencer, M-P en GEO5.
+
+--- 22:51 GEO5 grilla ampliada (foto 2) ---
+GEO5 Bishop: FS=1,09 (Mp/Ma=1,0871); centro (11,20; 21,40); R=16,30; a1=16,20; a2=66,88
+  Fa=253,61; Fp=275,69; Ma=4133,81; Mp=4493,72
+Pagina (mismo circulo, 200 dovelas): FS=1,086; Fa=254,40; Ma=4146,8; Mp=4502,0; a1=16,20; a2=66,88 -> dif 0,1-0,3 %
+Convencion GEO5: alfa medido desde la vertical bajo el centro, asin((x-cx)/R); Fa=Sum(W*sen a); Ma=Fa*R; Mp=FS*Ma.
+
+--- PAGINA v2 (publicada) ---
+Mejoras: sentido de deslizamiento corregido, Spencer y Morgenstern-Price (sin validar), varios suelos,
+refinamiento tipo GEO5, interfaz tipo GEO5, validacion integrada, advertencias, informe, copiar/pegar proyecto.
+Pagina con grilla x 4-36, z 16-40: Bishop 1,082 centro (11,40; 20,88) R 15,87; Fellenius 1,029; Spencer 1,078; M-P 1,077.
+PENDIENTE: FS de GEO5 para Fellenius, Spencer y M-P sobre el circulo B (11,20; 21,40; R 16,30).
+
+--- 23:26 GEO5: Fellenius, Spencer, Morgenstern-Price (fotos del usuario) ---
+GEO5 Fellenius/Petterson: FS=1,03 (Mp/Ma=1,0279); centro (12,20; 19,40); R=14,30; a1=13,27; a2=72,08
+  Fa=265,62; Fp=273,03; Ma=3798,32; Mp=3904,38
+GEO5 Spencer: FS=1,08; centro (11,20; 21,40); R=16,30 (mismo circulo que Bishop)
+GEO5 Morgenstern-Price: FS=1,08; centro (11,20; 21,40); R=16,30
+Pagina, mismo circulo: Fellenius C 1,0264 (-0,15 %); Spencer B 1,0815 y M-P B 1,0812 (dentro del redondeo de GEO5)
+Con grilla emulada (nodos x 9,2-13,2, z 19,4-23,4): la pagina elige los mismos centros que GEO5
+  (Bishop/Spencer/M-P (11,2; 21,4); Fellenius (12,2; 19,4)). Radio de la pagina 0,1 m mayor (tangente al terreno bajo) -> FS 0,1-0,5 % menor.
+Sesgo residual: Fa de la pagina +0,3 a +0,5 % respecto a GEO5; FS pagina -0,1 a -0,3 % (lado conservador).
+CAMBIOS v2.1: busqueda Fellenius usa Fellenius (antes buscaba con Bishop); modo nodos de grilla + radio optimizado como GEO5;
+refinamiento continuo ahora opcional; validacion incluye casos A, B, C y Spencer/M-P.

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estabilidad de taludes – réplica GEO5</title>
+<style>
+/* Dirección: panel técnico de escritorio, estilo GEO5. Neutros fríos, acento verde GEO5, rojo/verde solo para estado. */
+:root{--bg:#e8ecef;--pn:#f6f8f9;--card:#ffffff;--tx:#1c252b;--mut:#5b6872;--bd:#c5cdd3;--hd:#25343b;--hdtx:#eef3f5;--ac:#2e8b57;--ac2:#206a41;--bad:#c62828;--ok:#1b7a3a;--warn:#a15c00;--cv:#fbfcfd;--inp:#ffffff;--sh:0 1px 2px rgba(0,0,0,.06);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11161a;--pn:#1a2126;--card:#212a30;--tx:#e5eaed;--mut:#9aa7b0;--bd:#35424b;--hd:#0c1114;--hdtx:#e5eaed;--ac:#3fae75;--ac2:#2e8b57;--bad:#ff7b72;--ok:#56d364;--warn:#e3a53b;--cv:#161c20;--inp:#161c20;--sh:none;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11161a;--pn:#1a2126;--card:#212a30;--tx:#e5eaed;--mut:#9aa7b0;--bd:#35424b;--hd:#0c1114;--hdtx:#e5eaed;--ac:#3fae75;--ac2:#2e8b57;--bad:#ff7b72;--ok:#56d364;--warn:#e3a53b;--cv:#161c20;--inp:#161c20;--sh:none;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:13.5px/1.4 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+.bar{background:var(--hd);color:var(--hdtx);display:flex;align-items:center;gap:18px;padding:8px 16px;flex-wrap:wrap}
+.brand{font-weight:700;font-size:15px;letter-spacing:.01em}.brand small{font-weight:500;opacity:.7;margin-left:8px;font-size:11px;border:1px solid currentColor;border-radius:10px;padding:0 7px}
+.menu{display:flex;gap:4px;flex-wrap:wrap}
+.menu button{background:transparent;color:inherit;border:1px solid transparent;border-radius:5px;padding:5px 10px;cursor:pointer;font:inherit}
+.menu button:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25)}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:12px;padding:12px 16px;max-width:1700px;margin:0 auto}
+.left{display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel{background:var(--pn);border:1px solid var(--bd);border-radius:8px;box-shadow:var(--sh)}
+.canvasbox{position:relative;display:flex;gap:0;background:var(--cv);border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+.cvwrap{position:relative;flex:1;min-width:0}
+canvas{display:block;width:100%}
+.coords{position:absolute;left:8px;bottom:6px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;padding:1px 7px;border-radius:4px;pointer-events:none}
+.stale{position:absolute;left:50%;top:34px;transform:translateX(-50%);background:var(--warn);color:#fff;padding:3px 12px;border-radius:12px;font-size:12px;display:none}
+#legend{width:78px;position:relative;border-left:1px solid var(--bd);background:var(--pn);padding:10px 6px 28px 6px}
+#legend .bar2{position:absolute;left:8px;top:12px;bottom:50px;width:20px;border:1px solid var(--bd)}
+#legend .lb{position:absolute;left:34px;font-size:10.5px;color:var(--mut);transform:translateY(-50%)}
+#legend .tt{position:absolute;left:4px;right:2px;bottom:6px;font-size:10.5px;color:var(--mut);line-height:1.15}
+.ana{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0}
+.ana>div{padding:10px 14px}
+.ana>div+div{border-left:1px solid var(--bd)}
+h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.row{display:grid;grid-template-columns:132px 1fr;gap:6px 8px;align-items:center;margin-bottom:5px}
+.row.r3{grid-template-columns:132px 1fr 1fr}
+.row label,.fl{color:var(--mut);font-size:12.5px}
+input,select,textarea{font:inherit;color:var(--tx);background:var(--inp);border:1px solid var(--bd);border-radius:4px;padding:4px 6px;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+input[type=checkbox]{width:auto}
+textarea{font-family:ui-monospace,Consolas,monospace;font-size:12px;min-height:84px;resize:vertical}
+button.pri{background:var(--ac);color:#fff;border:0;border-radius:5px;padding:9px 18px;font-weight:600;cursor:pointer;font:inherit;font-weight:600}
+button.pri:hover{background:var(--ac2)}
+button.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:5px;padding:6px 11px;cursor:pointer;font:inherit}
+button.sec:hover{border-color:var(--ac);color:var(--ac)}
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.verif{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:10px 12px;font-size:13px;min-height:196px}
+.verif b.t{display:block;margin-bottom:6px}
+.verif .ln{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dotted var(--bd);padding:2px 0}
+.verif .big{margin-top:8px;font-size:15px;font-weight:700}
+.bad{color:var(--bad)}.ok{color:var(--ok)}.warn{color:var(--warn)}
+.cmp{display:flex;gap:6px;align-items:center;margin-top:8px;font-size:12.5px;color:var(--mut)}
+.cmp input{width:80px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--bd);padding:6px 10px 0;flex-wrap:wrap}
+.tabs button{background:transparent;border:1px solid transparent;border-bottom:0;border-radius:5px 5px 0 0;padding:6px 12px;cursor:pointer;color:var(--mut);font:inherit}
+.tabs button.on{background:var(--card);color:var(--tx);border-color:var(--bd);font-weight:600;position:relative;top:1px}
+.tabpane{display:none;padding:12px 14px;overflow-x:auto}.tabpane.on{display:block}
+table{border-collapse:collapse;font-size:12.5px;width:100%;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--bd);padding:4px 8px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:600;font-size:11.5px}
+.pill{display:inline-block;border-radius:10px;padding:0 9px;font-size:11.5px;font-weight:600;color:#fff}
+.pill.g{background:var(--ok)}.pill.r{background:var(--bad)}.pill.y{background:var(--warn)}
+.side{display:flex;flex-direction:column;gap:8px}
+.side details{background:var(--pn);border:1px solid var(--bd);border-radius:8px}
+.side summary{cursor:pointer;padding:9px 12px;font-weight:600;list-style:none;display:flex;justify-content:space-between}
+.side summary::after{content:"▾";color:var(--mut)}
+.side details[open] summary::after{content:"▴"}
+.side .in{padding:2px 12px 12px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.g3 label,.g2 label,.fl{display:flex;flex-direction:column;gap:2px;font-size:11.5px;color:var(--mut)}
+.soil{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:8px;margin-bottom:8px}
+.soil .top{display:flex;gap:6px;margin-bottom:6px}
+.soil .x{background:transparent;border:1px solid var(--bd);border-radius:4px;color:var(--bad);cursor:pointer;width:30px}
+.hint{font-size:11.5px;color:var(--mut);margin:4px 0}
+.err{color:var(--bad);font-size:12px;margin:4px 0}
+.warnbox{background:var(--card);border-left:4px solid var(--warn);padding:6px 10px;margin:4px 0;border-radius:4px}
+.warnbox.i{border-color:var(--ac)}
+.help{padding:12px 16px}.help summary{cursor:pointer;font-weight:700;color:var(--ac)}.help h4{margin:12px 0 3px;font-size:13px}.help p,.help li{margin:3px 0}
+.dlg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9;padding:16px}
+.dlg.on{display:flex}.dlg .box{background:var(--card);border-radius:8px;max-width:760px;width:100%;max-height:90%;overflow:auto;padding:14px;border:1px solid var(--bd)}
+.dlg textarea{min-height:260px;white-space:pre}.dlg img{max-width:100%;border:1px solid var(--bd)}
+.rep{font-size:13px}.rep h2{font-size:17px;margin:0 0 2px}.rep h4{margin:12px 0 4px}.rep img{max-width:100%;border:1px solid var(--bd);border-radius:4px}
+@media (max-width:1050px){.wrap{grid-template-columns:1fr}.ana{grid-template-columns:1fr}.ana>div+div{border-left:0;border-top:1px solid var(--bd)}}
+</style></head><body>
+<div class="bar"><div class="brand">Estabilidad de Taludes<small>beta · réplica GEO5</small></div>
+<div class="menu">
+<button id="mTask">Caso de la tarea</button><button id="mNew">Nuevo</button>
+<button id="mSave">Guardar proyecto</button><button id="mOpen">Abrir proyecto</button>
+<button id="mPng">Imagen del perfil</button><button id="mCsv">Dovelas (CSV)</button>
+<button id="mHelp">Ayuda</button></div></div>
+
+<div class="wrap">
+<div class="left">
+ <div class="canvasbox">
+  <div class="cvwrap"><canvas id="cv"></canvas><div class="coords" id="coords">X: –  Z: –</div><div class="stale" id="stale">Datos modificados · presiona Analizar</div></div>
+  <div id="legend"></div>
+ </div>
+
+ <div class="panel ana">
+  <div>
+   <h3>Análisis</h3>
+   <div class="row"><label for="surf">Superficie</label><select id="surf"><option>Circular</option></select></div>
+   <div class="row"><label for="method">Método</label><select id="method"><option value="fell">Fellenius (Sueco)</option><option value="bishop" selected>Bishop</option><option value="spencer">Spencer</option><option value="mp">Morgenstern-Price</option></select></div>
+   <div class="row"><label for="mode">Tipo de análisis</label><select id="mode"><option value="grid">Búsqueda de grilla</option><option value="fixed">Superficie fija (centro y radio)</option></select></div>
+   <div class="row r3"><label>Centro  x, z [m]</label><input id="cx" type="number" step="0.01"><input id="cz" type="number" step="0.01"></div>
+   <div class="row"><label for="rad">Radio R [m]</label><input id="rad" type="number" step="0.01"></div>
+   <div class="row r3"><label>Ángulos α₁, α₂ [°]</label><input id="a1" readonly><input id="a2" readonly></div>
+   <div class="btns"><button class="pri" id="run">Analizar</button><button class="sec" id="gridbtn">Búsqueda de cuadrícula…</button><button class="sec" id="refbtn">Refinar cuadrícula</button></div>
+   <div id="errs"></div>
+  </div>
+  <div>
+   <h3>Verificación</h3>
+   <div class="verif" id="verif"><span class="hint">Presiona Analizar.</span></div>
+   <div class="cmp">FS de GEO5 <input id="geofs" type="number" step="0.001" placeholder="1.09"> <span id="geodiff"></span></div>
+  </div>
+ </div>
+
+ <div class="panel">
+  <div class="tabs" id="tabs">
+   <button data-t="t1" class="on">Métodos</button><button data-t="t2">Validación vs GEO5</button><button data-t="t3">Dovelas</button><button data-t="t4">Advertencias</button><button data-t="t5">Informe</button>
+  </div>
+  <div class="tabpane on" id="t1"></div>
+  <div class="tabpane" id="t2"></div>
+  <div class="tabpane" id="t3"></div>
+  <div class="tabpane" id="t4"></div>
+  <div class="tabpane rep" id="t5"></div>
+ </div>
+
+ <details class="panel help" id="help"><summary>Ayuda: cómo usar e interpretar</summary>
+  <h4>Flujo</h4><ol>
+  <li><b>Interfaz:</b> puntos del terreno X,Z (punto decimal). Los extremos se extienden hasta X inicial/final, como GEO5. El generador arma un talud simple.</li>
+  <li><b>Suelos:</b> uno o varios, de arriba hacia abajo. Todos menos el último necesitan su base (puntos X,Z).</li>
+  <li><b>Análisis:</b> grilla de centros (x, z, cantidad). La página prueba radios en cada centro y refina el mínimo.</li>
+  <li>Presiona <b>Analizar</b>.</li></ol>
+  <h4>Resultados</h4><ul>
+  <li><b>FS:</b> momento estabilizador / momento deslizante. Bajo 1 el talud falla; compáralo con tu FS admisible.</li>
+  <li><b>Fa, Fp, Ma, Mp:</b> como en GEO5. Fa = Σ W·senα; Ma = Fa·R; Mp = FS·Ma.</li>
+  <li><b>α₁, α₂:</b> ángulos de salida y entrada medidos desde la vertical bajo el centro.</li>
+  <li><b>Spencer y Morgenstern-Price:</b> equilibrio de fuerzas y momentos. Se calculan sobre la superficie crítica. Coinciden con GEO5 en el caso de la tarea (ver Validación).</li>
+  <li><b>Advertencias:</b> si el centro crítico toca el borde de la grilla, amplíala.</li></ul>
+  <h4>Alcance</h4><p>Herramienta de apoyo en validación. No reemplaza software certificado ni el juicio de un profesional. Verifica el FS admisible con la normativa que aplique.</p>
+ </details>
+</div>
+
+<aside class="side">
+ <details open><summary>Interfaz (terreno)</summary><div class="in">
+  <label class="fl">Puntos X,Z (uno por línea)<textarea id="pts"></textarea></label>
+  <div class="g3" style="margin-top:6px"><label>X inicial<input id="xmin" type="number" step="1"></label><label>X final<input id="xmax" type="number" step="1"></label><label>Cota inferior<input id="yb" type="number" step="0.5"></label></div>
+  <div class="hint">Usa punto decimal. Cota inferior = fondo del modelo.</div>
+  <label class="fl" style="margin-top:8px">Cargar ejemplo<select id="exsel"><option value="">—</option><option value="ej1">Ayudantía Ej. 1: terraplén sobre grava</option><option value="ej2">Ayudantía Ej. 2: terraplén sobre arcilla</option></select></label>
+  <div class="fl" style="margin-top:8px">Generador de talud</div>
+  <div class="g3"><label>Altura H<input id="gH" type="number" value="10"></label><label>Horiz. por 1 vert.<input id="gm" type="number" value="1" step="0.25"></label><label>Cota inferior terreno<input id="gz0" type="number" value="5"></label>
+  <label>Terraza baja L1<input id="gL1" type="number" value="15"></label><label>Terraza alta L2<input id="gL2" type="number" value="10"></label><label>&nbsp;<button class="sec" id="gen">Generar</button></label></div>
+ </div></details>
+
+ <details open><summary>Suelos</summary><div class="in">
+  <div class="g2"><label>Unidad de γ<select id="unit"><option value="T">T/m³</option><option value="kN">kN/m³</option></select></label></div>
+  <div id="soils" style="margin-top:8px"></div>
+  <button class="sec" id="addsoil">+ Añadir suelo</button>
+  <div class="hint">Orden de arriba hacia abajo. El último llega hasta la cota inferior.</div>
+ </div></details>
+
+ <details><summary>Agua y sobrecarga</summary><div class="in">
+  <div class="g2"><label>Nivel freático Z [m]<input id="wt" type="number" step="0.1" placeholder="sin agua"></label><label>Sobrecarga q [kPa]<input id="q" type="number" value="0"></label><label>q desde X<input id="q0" type="number" value="25"></label><label>q hasta X<input id="q1" type="number" value="40"></label></div>
+  <div class="hint">Agua: nivel horizontal, presión de poros hidrostática.</div>
+ </div></details>
+
+ <details id="gridsec"><summary>Grilla de búsqueda</summary><div class="in">
+  <div class="g2"><label>X mín<input id="gx0" type="number" step="0.5"></label><label>X máx<input id="gx1" type="number" step="0.5"></label><label>Z mín<input id="gz0b" type="number" step="0.5"></label><label>Z máx<input id="gz1" type="number" step="0.5"></label>
+  <label>Centros en X<input id="gnx" type="number"></label><label>Centros en Z<input id="gnz" type="number"></label><label>Radios por centro<input id="gnr" type="number"></label><label>Dovelas (final)<input id="nsf" type="number"></label><label>Radio mínimo [m]<input id="rmin" type="number" step="0.5" value="0"></label></div>
+  <label class="fl" style="flex-direction:row;align-items:center;gap:6px;margin-top:8px"><input type="checkbox" id="gcont"> Refinar fuera de los nodos (mínimo continuo)</label><label class="fl" style="flex-direction:row;align-items:center;gap:6px;margin-top:4px"><input type="checkbox" id="grest"> Limitar ese refinamiento a la grilla</label><div class="hint">Sin refinar, la página hace lo mismo que GEO5: prueba solo los nodos de la grilla y optimiza el radio en cada uno.</div>
+  <div class="btns"><button class="sec" id="auto">Autoajustar grilla</button></div>
+ </div></details>
+
+ <details open><summary>Criterio</summary><div class="in">
+  <div class="g2"><label>Situación de diseño<select id="sit"><option value="perm">Permanente (estático)</option><option value="seis">Sísmico (pseudo-estático)</option></select></label><label>FS admisible<input id="fa" type="number" step="0.05" value="1.5"></label><label>Kh (horizontal)<input id="kh" type="number" step="0.01" value="0"></label><label>Kv<input id="kv" value="0" readonly></label></div>
+  <div class="hint">Confirma el valor con la norma o las bases de tu caso.</div>
+ </div></details>
+</aside>
+</div>
+
+<div class="dlg" id="dlg"><div class="box"><div id="dlgbody"></div><div class="btns"><button class="pri" id="dlgcopy">Copiar</button><button class="sec" id="dlgclose">Cerrar</button><span class="hint" id="dlgmsg"></span></div></div></div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id),GW=9.81;
+const fmt=(v,d=2)=>(v===null||v===undefined||!isFinite(v))?"—":v.toFixed(d).replace(".",",");
+const TASK={pts:"0,5\n15,5\n25,15\n35,15",xmin:0,xmax:40,yb:0,unit:"T",soils:[{name:"Suelo 1",g:2,phi:33,c:5,bot:""}],wt:"",q:0,q0:25,q1:40,
+ grid:{x0:4,x1:36,z0:16,z1:40,nx:33,nz:25,nr:60,restrict:true,cont:false},nsFinal:60,method:"bishop",mode:"grid",fa:1.5,sit:"perm",kh:0,rmin:0,fix:{cx:11.2,cy:21.4,R:16.3}};
+/* Valores medidos en GEO5 2026 (Bishop) con el caso de la tarea, φ=33°, γ=2 T/m³, c=5 kPa */
+const CASES=[
+ {n:"A",m:"bishop",cx:13.54,cy:17.59,R:12.55,Fa:323.01,Fp:361.07,Ma:4055.07,Mp:4532.90,a1:7.33,a2:78.08},
+ {n:"B",m:"bishop",cx:11.20,cy:21.40,R:16.30,Fa:253.61,Fp:275.69,Ma:4133.81,Mp:4493.72,a1:16.20,a2:66.88},
+ {n:"C",m:"fell",cx:12.20,cy:19.40,R:14.30,Fa:265.62,Fp:273.03,Ma:3798.32,Mp:3904.38,a1:13.27,a2:72.08}];
+const GEO2=[{k:"spencer",n:"Spencer",fs:1.08},{k:"mp",n:"Morgenstern-Price",fs:1.08}];
+
+/* ============ MOTOR ============ */
+function parsePts(t){const out=[],bad=[];t.split(/\n/).forEach((l,i)=>{l=l.trim();if(!l)return;const p=l.split(/[;\s,]+/).filter(Boolean).map(Number);if(p.length===2&&p.every(isFinite))out.push(p);else bad.push(i+1)});return{pts:out,bad}}
+function gY(P,x){if(x<=P[0][0])return P[0][1];for(let i=1;i<P.length;i++)if(x<=P[i][0]){const t=(x-P[i-1][0])/((P[i][0]-P[i-1][0])||1e-9);return P[i-1][1]+t*(P[i][1]-P[i-1][1])}return P[P.length-1][1]}
+function modelFrom(st){
+ const err=[],pp=parsePts(st.pts);let P=pp.pts;
+ if(pp.bad.length)err.push("Línea(s) inválida(s) en el terreno: "+pp.bad.join(", ")+". Formato: X,Z con punto decimal.");
+ if(P.length<2)err.push("Ingresa al menos 2 puntos del terreno.");
+ P.sort((a,b)=>a[0]-b[0]);
+ for(let i=1;i<P.length;i++)if(P[i][0]-P[i-1][0]<1e-9){err.push("Hay dos puntos con el mismo X ("+P[i][0]+").");break}
+ if(P.length>=2&&!err.length){if(isFinite(st.xmin)&&st.xmin<P[0][0])P.unshift([st.xmin,P[0][1]]);const l=P[P.length-1];if(isFinite(st.xmax)&&st.xmax>l[0])P.push([st.xmax,l[1]])}
+ const f=st.unit==="T"?GW:1;
+ const L=st.soils.map((s,i)=>{let bot=null;
+  if(i<st.soils.length-1){const b=parsePts(s.bot);if(b.pts.length<2||b.bad.length)err.push('Define la base del suelo "'+s.name+'" con al menos 2 puntos X,Z.');else{bot=b.pts.sort((a,b)=>a[0]-b[0])}}
+  if(![s.g,s.phi,s.c].every(isFinite))err.push('Completa γ, φ y c del suelo "'+s.name+'".');
+  return{name:s.name,g:s.g*f,phi:s.phi*Math.PI/180,phiDeg:s.phi,c:s.c,bot}});
+ let zmax=0,zmin=0;if(P.length>=1){zmax=Math.max(...P.map(p=>p[1]));zmin=Math.min(...P.map(p=>p[1]))}
+ if(!isFinite(st.yb))err.push("Ingresa la cota inferior.");else if(st.yb>=zmin)err.push("La cota inferior debe quedar bajo el terreno.");
+ return{err,P,yb:st.yb,rmin:isFinite(st.rmin)?st.rmin:0,kh:(st.sit==="seis"&&isFinite(st.kh))?st.kh:0,L,wt:(st.wt===""||st.wt===null||isNaN(st.wt))?null:st.wt,q:st.q||0,q0:st.q0,q1:st.q1,zmax,zmin}}
+function col(M,x,yB){const g=gY(M.P,x);let up=g,w=0,kb=M.L.length-1,found=false;
+ for(let k=0;k<M.L.length;k++){const L=M.L[k];const lo=(k===M.L.length-1)?M.yb:Math.min(up,gY(L.bot,x));
+  const a=Math.max(lo,yB);if(up>a)w+=L.g*(up-a);if(!found&&yB>=lo){kb=k;found=true}up=lo}
+ return{w,k:kb}}
+function setup(M,cx,cy,R,ns){
+ const P=M.P,n0=P.length,N=200,x0=cx-R,dx=2*R/N;
+ if(cy-R<M.yb-1e-6||R<(M.rmin||0))return null;
+ const yc=x=>cy-Math.sqrt(Math.max(0,R*R-(x-cx)*(x-cx))),f=x=>gY(P,x)-yc(x);
+ let ia=-1,ib=-1;for(let i=0;i<=N;i++){if(f(x0+i*dx)>1e-9){if(ia<0)ia=i;ib=i}}
+ if(ia<1||ib>N-1)return null;
+ const bis=(a,b)=>{for(let k=0;k<30;k++){const m=(a+b)/2;if(f(m)>0)b=m;else a=m}return(a+b)/2};
+ const xa=bis(x0+(ia-1)*dx,x0+ia*dx),xb=bis(x0+(ib+1)*dx,x0+ib*dx);
+ if(xa<P[0][0]||xb>P[n0-1][0]||xb-xa<0.5)return null;
+ const s=gY(P,xa)<gY(P,xb)?1:-1,b=(xb-xa)/ns,sl=[],kh=M.kh||0;let drv=0,seisM=0;
+ for(let i=0;i<ns;i++){const xl=xa+i*b,xm=xl+b/2,xr=xl+b,y=yc(xm),sa=s*(xm-cx)/R;if(Math.abs(sa)>0.985)return null;
+  const ca=Math.sqrt(1-sa*sa),cm=col(M,xm,y),w=(col(M,xl,yc(xl)).w+4*cm.w+col(M,xr,yc(xr)).w)/6;
+  let W=w*b;if(M.q){const ov=Math.max(0,Math.min(xr,M.q1)-Math.max(xl,M.q0));W+=M.q*ov}
+  const Ws=w*b,dz=cy-(y+gY(P,xm))/2,Ts=W*sa+kh*Ws*ca,Nw=W*ca-kh*Ws*sa;seisM+=kh*Ws*dz/R;
+  const L=M.L[cm.k],u=M.wt!==null?GW*Math.max(0,M.wt-y):0;
+  sl.push({xm,y,b,W,Ts,Nw,sa,ca,l:b/ca,u,c:L.c,T:Math.tan(L.phi),phi:L.phiDeg,k:cm.k});drv+=W*sa}
+ drv+=seisM;
+ return{cx,cy,R,xa,xb,s,sl,drv,ns,kh}}
+function fellFS(S){if(S.drv<=1e-6)return null;let a=0;for(const d of S.sl)a+=d.c*d.l+(d.Nw-d.u*d.l)*d.T;return a>0?a/S.drv:null}
+function bishopFS(S){if(S.drv<=1e-6)return null;let F=fellFS(S);if(!(F>0))F=1;
+ for(let k=0;k<80;k++){let a=0;for(const d of S.sl){const m=d.ca+d.sa*d.T/F;if(m<=0.1)return null;a+=(d.c*d.b+(d.W-d.u*d.b)*d.T)/m}
+  const nf=a/S.drv;if(!(nf>0))return null;if(Math.abs(nf-F)<1e-8)return nf;F=nf}return F}
+function scanRoot(fn,lo,hi,n,ref){let a=lo,fa=fn(a),best=null;
+ for(let i=1;i<=n;i++){const b=lo+(hi-lo)*i/n,fb=fn(b);
+  if(fa!==null&&fb!==null&&fa*fb<=0){let x0=a,x1=b,f0=fa,ok=true;for(let k=0;k<36;k++){const m=(x0+x1)/2,fm=fn(m);if(fm===null){ok=false;break}if(f0*fm<=0)x1=m;else{x0=m;f0=fm}}
+   if(ok){const r=(x0+x1)/2;if(ref===undefined)return r;if(best===null||Math.abs(r-ref)<Math.abs(best-ref))best=r}}
+  a=b;fa=fb}return best}
+/* Spencer (f=1) y Morgenstern-Price (f=sen) por dovelas; equilibrio de fuerzas y de momentos */
+function rigorous(S,kind){
+ if(S.drv<=1e-6)return null;
+ const sl=S.s===1?S.sl.slice().reverse():S.sl,n=sl.length,fI=[];for(let i=0;i<=n;i++)fI.push(kind==="S"?1:Math.sin(Math.PI*i/n));
+ const march=(F,lam)=>{let E=0,X=0,cap=0;
+  for(let i=1;i<=n;i++){const d=sl[i-1],D=F*d.ca+d.T*d.sa;if(D<=1e-6)return null;
+   const A=(F*d.Ts-d.T*d.Nw-d.c*d.l+d.u*d.l*d.T)/D,B=(F*d.sa-d.T*d.ca)/D,den=1-B*lam*fI[i];if(Math.abs(den)<1e-6)return null;
+   const Ei=(E+A-B*X)/den,Xi=lam*fI[i]*Ei,dE=Ei-E,dX=Xi-X,Nn=d.Nw+dX*d.ca+dE*d.sa;
+   cap+=d.c*d.l+(Nn-d.u*d.l)*d.T;E=Ei;X=Xi}
+  return{En:E,cap}};
+ const Fref=bishopFS(S);if(Fref===null)return null;
+ const tryR=(f0,f1,nf,l0,l1,nl)=>{
+ const Ff=lam=>scanRoot(F=>{const r=march(F,lam);return r?r.En:null},f0,f1,nf,Fref);
+ const Fm=lam=>scanRoot(F=>{const r=march(F,lam);return r?r.cap/S.drv-F:null},f0,f1,nf,Fref);
+ const dd=lam=>{const a=Ff(lam),b=Fm(lam);return(a===null||b===null)?null:a-b};
+ const lam=scanRoot(dd,l0,l1,nl,0);if(lam===null)return null;
+ const F=Fm(lam);return F===null?null:{fs:F,lam}};
+ return tryR(0.3,5,28,-1.2,1.2,12)||tryR(0.1,4,60,-3,3,30)}
+function fsOf(M,cx,cy,R,ns,method){const S=setup(M,cx,cy,R,ns);if(!S)return null;
+ const v=method==="fell"?fellFS(S):bishopFS(S);return v===null?null:{fs:v,S}}
+function refineR(M,cx,cy,R0,f0,ns,method,step){let R=R0,f=f0;for(let it=0;it<40&&step>0.002;it++){let imp=false;for(const d of[1,-1]){const r2=R+d*step;if(cy-r2<M.yb||r2<0.3)continue;const r=fsOf(M,cx,cy,r2,ns,method);if(r&&r.fs<f-1e-10){f=r.fs;R=r2;imp=true;break}}if(!imp)step/=2}return{R,fs:f}}
+function runSearch(M,g,method,ns){const cs=[];let best=null;
+ for(let i=0;i<g.nx;i++)for(let j=0;j<g.nz;j++){
+  const cx=g.nx>1?g.x0+(g.x1-g.x0)*i/(g.nx-1):g.x0,cy=g.nz>1?g.z0+(g.z1-g.z0)*j/(g.nz-1):g.z0;
+  const Rmax=cy-M.yb,Rmin=Math.max(0.3,cy-M.zmax)+0.01;if(Rmax<=Rmin)continue;
+  let bc=null;for(let k=0;k<g.nr;k++){const R=Rmin+(Rmax-Rmin)*(k+0.5)/g.nr,r=fsOf(M,cx,cy,R,ns,method);if(r&&(!bc||r.fs<bc.fs))bc={cx,cy,R,fs:r.fs,xa:r.S.xa,xb:r.S.xb,s:r.S.s}}
+  if(bc){const rr=refineR(M,cx,cy,bc.R,bc.fs,ns,method,(Rmax-Rmin)/g.nr);if(rr.R!==bc.R){const q=fsOf(M,cx,cy,rr.R,ns,method);if(q)bc={cx,cy,R:rr.R,fs:q.fs,xa:q.S.xa,xb:q.S.xb,s:q.S.s}}
+   cs.push(bc);if(!best||bc.fs<best.fs)best=bc}}
+ return{cs,best}}
+const DIR26=(()=>{const d=[];for(const a of[-1,0,1])for(const b of[-1,0,1])for(const c of[-1,0,1])if(a||b||c)d.push([a,b,c]);return d})();
+const DIR6=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+function refine(M,b,obj,bounds,s0,s1,dirs){let cur={cx:b.cx,cy:b.cy,R:b.R,fs:b.fs},step=s0,guard=0;
+ while(step>s1&&guard++<300){let imp=false;
+  for(const[a,c,d]of dirs){const cx=cur.cx+a*step,cy=cur.cy+c*step,R=cur.R+d*step;
+   if(bounds&&(cx<bounds.x0-1e-9||cx>bounds.x1+1e-9||cy<bounds.z0-1e-9||cy>bounds.z1+1e-9))continue;
+   if(cy-R<M.yb||R<0.3)continue;const r=obj(cx,cy,R);if(r!==null&&r<cur.fs-1e-9){cur={cx,cy,R,fs:r};imp=true}}
+  if(!imp)step/=2}
+ return cur}
+/* descarta raíces espurias: un círculo no difiere más de ~20 % entre Bishop y los métodos rigurosos */
+function rigSafe(S,k){const r=rigorous(S,k);if(!r)return null;const b=bishopFS(S);if(b===null||!isFinite(r.fs)||Math.abs(r.fs/b-1)>0.2)return null;return r}
+function allMethods(M,cx,cy,R,ns){const S=setup(M,cx,cy,R,ns);if(!S)return null;
+ const sp=rigSafe(S,"S"),mp=rigSafe(S,"M");
+ return{S,fell:fellFS(S),bishop:bishopFS(S),spencer:sp?sp.fs:null,mp:mp?mp.fs:null,lamS:sp?sp.lam:null,lamM:mp?mp.lam:null}}
+
+/* ============ ESTADO / UI ============ */
+let RES=null,VT=null;
+const defaultBot=(st)=>{const M=modelFrom(st);const zm=(M.zmin+st.yb)/2;return"0,"+zm.toFixed(2)+"\n"+(st.xmax||40)+","+zm.toFixed(2)};
+function soilCard(s,i,n){const el=document.createElement("div");el.className="soil";
+ el.innerHTML='<div class="top"><input class="s-name" aria-label="Nombre del suelo"><button class="x" title="Eliminar suelo" aria-label="Eliminar suelo">✕</button></div><div class="g3"><label>γ<input class="s-g" type="number" step="0.01"></label><label>φ (°)<input class="s-phi" type="number" step="0.5"></label><label>c (kPa)<input class="s-c" type="number" step="0.5"></label></div><label class="fl s-botw" style="margin-top:6px">Base del suelo (X,Z por línea)<textarea class="s-bot" style="min-height:54px"></textarea></label>';
+ el.querySelector(".s-name").value=s.name;el.querySelector(".s-g").value=s.g;el.querySelector(".s-phi").value=s.phi;el.querySelector(".s-c").value=s.c;el.querySelector(".s-bot").value=s.bot||"";
+ el.querySelector(".s-botw").style.display=(i<n-1)?"flex":"none";el.querySelector(".x").style.visibility=n>1?"visible":"hidden";
+ el.querySelector(".x").onclick=()=>{const st=readState();st.soils.splice(i,1);renderSoils(st.soils);markStale()};return el}
+function renderSoils(list){const c=$("soils");c.innerHTML="";list.forEach((s,i)=>c.appendChild(soilCard(s,i,list.length)))}
+function readState(){const v=id=>$(id).value;
+ const soils=[...document.querySelectorAll(".soil")].map(el=>({name:el.querySelector(".s-name").value||"Suelo",g:parseFloat(el.querySelector(".s-g").value),phi:parseFloat(el.querySelector(".s-phi").value),c:parseFloat(el.querySelector(".s-c").value),bot:el.querySelector(".s-bot").value}));
+ return{pts:v("pts"),xmin:parseFloat(v("xmin")),xmax:parseFloat(v("xmax")),yb:parseFloat(v("yb")),unit:v("unit"),soils,wt:v("wt")===""?"":parseFloat(v("wt")),q:parseFloat(v("q"))||0,q0:parseFloat(v("q0")),q1:parseFloat(v("q1")),
+ grid:{x0:+v("gx0"),x1:+v("gx1"),z0:+v("gz0b"),z1:+v("gz1"),nx:Math.max(1,+v("gnx")|0),nz:Math.max(1,+v("gnz")|0),nr:Math.max(5,+v("gnr")|0),restrict:$("grest").checked,cont:$("gcont").checked},
+ nsFinal:Math.max(10,+v("nsf")|0),method:v("method"),mode:v("mode"),rmin:parseFloat(v("rmin"))||0,fa:+v("fa"),sit:v("sit"),kh:parseFloat(v("kh"))||0,fix:{cx:+v("cx"),cy:+v("cz"),R:+v("rad")}}}
+function writeState(st){const s=(id,x)=>{$(id).value=x};
+ s("pts",st.pts);s("xmin",st.xmin);s("xmax",st.xmax);s("yb",st.yb);s("unit",st.unit);s("wt",st.wt);s("q",st.q);s("q0",st.q0);s("q1",st.q1);
+ s("gx0",st.grid.x0);s("gx1",st.grid.x1);s("gz0b",st.grid.z0);s("gz1",st.grid.z1);s("gnx",st.grid.nx);s("gnz",st.grid.nz);s("gnr",st.grid.nr);$("grest").checked=!!st.grid.restrict;$("gcont").checked=!!st.grid.cont;
+ s("nsf",st.nsFinal);s("method",st.method);s("mode",st.mode);s("fa",st.fa);s("sit",st.sit||"perm");s("rmin",st.rmin||0);s("kh",st.kh||0);s("cx",st.fix.cx);s("cz",st.fix.cy);s("rad",st.fix.R);renderSoils(st.soils)}
+function markStale(){RES=null;$("stale").style.display="block";draw();try{localStorage.setItem("taludes-auto",JSON.stringify(readState()))}catch(e){}}
+function niceStep(r){const t=r/8,p=Math.pow(10,Math.floor(Math.log10(t))),m=t/p;return(m<1.5?1:m<3.5?2:m<7.5?5:10)*p}
+const LCOL=()=>(matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.getAttribute("data-theme")!=="light")?["#5a4a2c","#6b5a3a","#7c6a48","#8c7a57"]:["#ead9b3","#dcc7a0","#cdb48c","#bda27a"];
+let XF=null;
+function draw(){
+ const cv=$("cv"),box=cv.parentElement,W=box.clientWidth||700,dpr=window.devicePixelRatio||1;
+ const st=readState(),M=RES?RES.M:modelFrom(st);
+ const H=Math.max(380,Math.min(560,Math.round(W*0.5)));cv.style.height=H+"px";cv.width=W*dpr;cv.height=H*dpr;
+ const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--cv")||"#fff";g.fillRect(0,0,W,H);
+ const css=getComputedStyle(document.documentElement),tx=css.getPropertyValue("--tx").trim(),mut=css.getPropertyValue("--mut").trim();
+ if(M.err.length||M.P.length<2){g.fillStyle=mut;g.font="14px sans-serif";g.fillText("Revisa los datos de entrada: "+(M.err[0]||""),20,40);XF=null;renderLegend(null);return}
+ const P=M.P,x0=P[0][0],x1=P[P.length-1][0],gz1=Math.max(st.grid.z1||0,M.zmax);
+ const dxm=[x0-4,x1+4],dzm=[M.yb-2,gz1+3],top=26,left=28;
+ const sc=Math.min((W-left-10)/(dxm[1]-dxm[0]),(H-top-8)/(dzm[1]-dzm[0])),ox=left+((W-left-10)-sc*(dxm[1]-dxm[0]))/2,oy=top+((H-top-8)-sc*(dzm[1]-dzm[0]))/2;
+ const X=x=>ox+(x-dxm[0])*sc,Y=z=>H-8-oy+top-(z-dzm[0])*sc+ (oy-top)*0;
+ const Yf=z=>H-((H-top-8)-sc*(dzm[1]-dzm[0]))/2-8-(z-dzm[0])*sc;
+ XF={sc,ox,dxm,dzm,H,Yf};
+ /* regla superior y lateral */
+ g.fillStyle=mut;g.strokeStyle=mut;g.font="10.5px sans-serif";g.lineWidth=1;
+ const stp=niceStep(dxm[1]-dxm[0]);g.textAlign="center";
+ for(let x=Math.ceil(dxm[0]/stp)*stp;x<=dxm[1];x+=stp){g.beginPath();g.moveTo(X(x),top-4);g.lineTo(X(x),top);g.stroke();g.fillText(String(Math.round(x*100)/100).replace(".",","),X(x),top-8)}
+ g.textAlign="right";const sz=niceStep(dzm[1]-dzm[0]);for(let z=Math.ceil(dzm[0]/sz)*sz;z<=dzm[1];z+=sz){g.beginPath();g.moveTo(left-4,Yf(z));g.lineTo(left,Yf(z));g.stroke();g.fillText(String(Math.round(z*100)/100).replace(".",","),left-6,Yf(z)+3)}
+ g.textAlign="left";
+ /* suelos */
+ const lc=LCOL(),xs=[];for(let x=x0;x<x1;x+=0.25)xs.push(x);xs.push(x1);
+ const bnd=x=>{const out=[gY(P,x)];for(let k=0;k<M.L.length;k++){out.push(k===M.L.length-1?M.yb:Math.min(out[k],gY(M.L[k].bot,x)))}return out};
+ const B=xs.map(bnd);
+ for(let k=0;k<M.L.length;k++){g.fillStyle=lc[k%4];g.beginPath();xs.forEach((x,i)=>{const y=Yf(B[i][k]);i?g.lineTo(X(x),y):g.moveTo(X(x),y)});for(let i=xs.length-1;i>=0;i--)g.lineTo(X(xs[i]),Yf(B[i][k+1]));g.closePath();g.fill();
+  if(k>0){g.strokeStyle=mut;g.lineWidth=1;g.beginPath();xs.forEach((x,i)=>{const y=Yf(B[i][k]);i?g.lineTo(X(x),y):g.moveTo(X(x),y)});g.stroke()}}
+ g.strokeStyle=tx;g.lineWidth=2;g.beginPath();P.forEach((p,i)=>i?g.lineTo(X(p[0]),Yf(p[1])):g.moveTo(X(p[0]),Yf(p[1])));g.stroke();
+ g.setLineDash([5,4]);g.strokeStyle=mut;g.lineWidth=1;[x0,x1].forEach(x=>{g.beginPath();g.moveTo(X(x),Yf(M.yb));g.lineTo(X(x),Yf(gz1+2));g.stroke()});g.setLineDash([]);
+ g.strokeStyle=mut;g.beginPath();g.moveTo(X(x0),Yf(M.yb));g.lineTo(X(x1),Yf(M.yb));g.stroke();
+ if(M.wt!==null){g.strokeStyle="#2f81f7";g.setLineDash([6,4]);g.lineWidth=1.5;g.beginPath();g.moveTo(X(x0),Yf(M.wt));g.lineTo(X(x1),Yf(M.wt));g.stroke();g.setLineDash([])}
+ if(M.q){g.fillStyle="rgba(198,40,40,.7)";const a=Math.max(M.q0,x0),b=Math.min(M.q1,x1);if(b>a){g.fillRect(X(a),Yf(gY(P,a))-8,X(b)-X(a),4)}}
+ /* grilla de centros */
+ const gr=st.grid;if(st.mode==="grid"&&isFinite(gr.x0)&&isFinite(gr.x1)){g.fillStyle="rgba(0,188,212,.85)";
+  for(let i=0;i<gr.nx;i++)for(let j=0;j<gr.nz;j++){const cx=gr.nx>1?gr.x0+(gr.x1-gr.x0)*i/(gr.nx-1):gr.x0,cy=gr.nz>1?gr.z0+(gr.z1-gr.z0)*j/(gr.nz-1):gr.z0;g.beginPath();g.arc(X(cx),Yf(cy),2.6,0,7);g.fill()}}
+ let leg=null;
+ if(RES){const cs=RES.cs.slice();
+  if(cs.length){const fv=cs.map(c=>c.fs),mn=RES.fsMain,mx=Math.max(...fv);const cap=Math.min(mx,Math.max(mn*2.2,mn+0.5));leg={mn,cap};
+   const colr=f=>{const t=Math.max(0,Math.min(1,(f-mn)/((cap-mn)||1)));return"hsl("+(t*120)+",85%,45%)"};
+   cs.sort((a,b)=>b.fs-a.fs);g.lineWidth=1;
+   for(const c of cs){g.strokeStyle=colr(c.fs);g.globalAlpha=.55;g.beginPath();for(let i=0;i<=40;i++){const x=c.xa+(c.xb-c.xa)*i/40,y=c.cy-Math.sqrt(Math.max(0,c.R*c.R-(x-c.cx)**2));i?g.lineTo(X(x),Yf(y)):g.moveTo(X(x),Yf(y))}g.stroke()}g.globalAlpha=1}
+  const s=RES.S;
+  g.fillStyle="rgba(255,193,7,.20)";g.beginPath();for(let i=0;i<=60;i++){const x=s.xa+(s.xb-s.xa)*i/60;const y=gY(P,x);i?g.lineTo(X(x),Yf(y)):g.moveTo(X(x),Yf(y))}
+  for(let i=60;i>=0;i--){const x=s.xa+(s.xb-s.xa)*i/60,y=s.cy-Math.sqrt(Math.max(0,s.R*s.R-(x-s.cx)**2));g.lineTo(X(x),Yf(y))}g.closePath();g.fill();
+  g.strokeStyle="rgba(120,90,0,.45)";g.lineWidth=.7;for(const d of s.sl){const xl=d.xm-d.b/2;const yb2=s.cy-Math.sqrt(Math.max(0,s.R*s.R-(xl-s.cx)**2));g.beginPath();g.moveTo(X(xl),Yf(yb2));g.lineTo(X(xl),Yf(gY(P,xl)));g.stroke()}
+  g.strokeStyle="#000";g.lineWidth=4.5;g.globalAlpha=.35;g.beginPath();for(let i=0;i<=80;i++){const x=s.xa+(s.xb-s.xa)*i/80,y=s.cy-Math.sqrt(Math.max(0,s.R*s.R-(x-s.cx)**2));i?g.lineTo(X(x),Yf(y)):g.moveTo(X(x),Yf(y))}g.stroke();g.globalAlpha=1;
+  g.strokeStyle="#ffd400";g.lineWidth=2.6;g.beginPath();for(let i=0;i<=80;i++){const x=s.xa+(s.xb-s.xa)*i/80,y=s.cy-Math.sqrt(Math.max(0,s.R*s.R-(x-s.cx)**2));i?g.lineTo(X(x),Yf(y)):g.moveTo(X(x),Yf(y))}g.stroke();
+  g.fillStyle="#ffd400";g.strokeStyle="#000";g.lineWidth=1;g.beginPath();g.arc(X(s.cx),Yf(s.cy),5,0,7);g.fill();g.stroke();
+  g.setLineDash([4,4]);g.strokeStyle=mut;g.beginPath();g.moveTo(X(s.cx),Yf(s.cy));g.lineTo(X(s.xa),Yf(gY(P,s.xa)));g.stroke();g.setLineDash([]);
+  g.fillStyle=tx;g.font="600 12px sans-serif";g.fillText("FS = "+fmt(RES.fsMain,3),X(s.cx)+9,Yf(s.cy)+4)}
+ renderLegend(leg)}
+function renderLegend(l){const el=$("legend");if(!l){el.innerHTML="";return}
+ let h='<div class="bar2" style="background:linear-gradient(to bottom,hsl(0,85%,45%),hsl(60,85%,45%),hsl(120,85%,45%))"></div>';
+ for(let i=0;i<=8;i++){const v=l.mn+(l.cap-l.mn)*i/8;h+='<div class="lb" style="top:calc(12px + (100% - 62px)*'+(i/8)+')">'+fmt(v,2)+"</div>"}
+ el.innerHTML=h+'<div class="tt">Factor de seguridad</div>'}
+$("cv").addEventListener("mousemove",e=>{if(!XF)return;const r=$("cv").getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top,x=XF.dxm[0]+(px-XF.ox)/XF.sc;
+ const z0=Math.round((XF.Yf(0)-py)/XF.sc*100)/100+0;$("coords").textContent="X: "+fmt(x,2)+"  Z: "+fmt(XF.dzm[0]+(XF.Yf(XF.dzm[0])-py)/XF.sc,2)});
+
+/* ============ ANÁLISIS ============ */
+function showErr(e){$("errs").innerHTML=e.map(x=>'<div class="err">'+x+"</div>").join("")}
+function analyze(opts){
+ opts=opts||{};const st=readState(),M=modelFrom(st);showErr(M.err);if(M.err.length){RES=null;draw();return}
+ const g=st.grid;let cs=[],best=null,ns=Math.min(st.nsFinal,40);
+ if(opts.refineOnly||st.mode==="fixed"){const fx=opts.refineOnly&&RES?{cx:RES.S.cx,cy:RES.S.cy,R:RES.S.R}:st.fix;
+  const r=fsOf(M,fx.cx,fx.cy,fx.R,st.nsFinal,"bishop");if(!r){showErr(["Esa superficie no corta el talud dentro del modelo. Cambia centro y radio."]);RES=null;draw();return}
+  best={cx:fx.cx,cy:fx.cy,R:fx.R,fs:r.fs,xa:r.S.xa,xb:r.S.xb,s:r.S.s};cs=[best]}
+ else{const sr=runSearch(M,g,st.method==="fell"?"fell":"bishop",ns);cs=sr.cs;best=sr.best}
+ if(!best){showErr(["No se encontró ninguna superficie válida. Amplía la grilla o revisa los datos."]);RES=null;draw();return}
+ const method=st.method,cont=!!g.cont||!!opts.refineOnly;let nodeFS=null;
+ if(st.mode==="grid"||opts.refineOnly){
+  const sm=method==="fell"?"fell":"bishop",rig=(method==="spencer"||method==="mp"),k=method==="spencer"?"S":"M";
+  const pin=b=>({x0:b.cx,x1:b.cx,z0:b.cy,z1:b.cy}),DIRR=[[0,0,1],[0,0,-1]];
+  const obj1=(cx,cy,R)=>{const r=fsOf(M,cx,cy,R,st.nsFinal,sm);return r?r.fs:null};
+  const obj2=(cx,cy,R)=>{const S=setup(M,cx,cy,R,st.nsFinal);if(!S)return null;const r=rigSafe(S,k);return r?r.fs:null};
+  const objM=rig?obj2:obj1;
+  const o0=objM(best.cx,best.cy,best.R);if(o0!==null)best.fs=o0;
+  best=Object.assign(best,refine(M,best,objM,pin(best),0.3,0.002,DIRR));
+  nodeFS=best.fs;
+  if(cont){const bounds=(st.mode==="grid"&&g.restrict&&!opts.refineOnly)?{x0:g.x0,x1:g.x1,z0:g.z0,z1:g.z1}:null;
+   best=Object.assign(best,refine(M,best,objM,bounds,rig?0.25:0.5,rig?0.02:0.004,rig?DIR6:DIR26))}}
+ let A=allMethods(M,best.cx,best.cy,best.R,st.nsFinal);if(A&&A.bishop===null){for(const n2 of[40,80,30]){const A2=allMethods(M,best.cx,best.cy,best.R,n2);if(A2&&A2.bishop!==null){A=A2;break}}}
+ if(!A){showErr(["La superficie final no es válida."]);RES=null;draw();return}
+ const fsMain=({fell:A.fell,bishop:A.bishop,spencer:A.spencer,mp:A.mp})[method];
+ RES={M,st,cs,best,S:A.S,A,fsMain:fsMain!==null?fsMain:(A.bishop!==null?A.bishop:A.fell),method,methodOK:fsMain!==null,cont,nodeFS};
+ $("stale").style.display="none";
+ $("cx").value=A.S.cx.toFixed(2);$("cz").value=A.S.cy.toFixed(2);$("rad").value=A.S.R.toFixed(2);
+ $("a1").value=fmt(Math.asin((A.S.xa-A.S.cx)/A.S.R)*180/Math.PI,2);$("a2").value=fmt(Math.asin((A.S.xb-A.S.cx)/A.S.R)*180/Math.PI,2);
+ render();try{localStorage.setItem("taludes-auto",JSON.stringify(readState()))}catch(e){}}
+const MN={fell:"Fellenius",bishop:"Bishop",spencer:"Spencer",mp:"Morgenstern-Price"};
+function render(){if(!RES)return;draw();renderVerif();renderMethods();renderSlices();renderWarn();renderReport();geoDiff()}
+function renderVerif(){const{S,A,fsMain,method,methodOK,st}=RES,ok=fsMain>=st.fa,Fa=S.drv,Ma=Fa*S.R;
+ let h='<b class="t">Verificación de estabilidad de taludes ('+MN[method]+")</b>";
+ if(!methodOK)h+='<div class="warn">'+MN[method]+" no convergió en esta superficie. Se muestra Bishop.</div>";
+ if(method==="fell"||method==="bishop"||!methodOK){const FSb=methodOK?fsMain:A.bishop;
+  h+='<div class="ln"><span>Suma de fuerzas activas  Fa</span><b>'+fmt(Fa)+' kN/m</b></div><div class="ln"><span>Suma de fuerzas pasivas  Fp</span><b>'+fmt(FSb*Fa)+' kN/m</b></div><div class="ln"><span>Momento de deslizamiento  Ma</span><b>'+fmt(Ma)+' kNm/m</b></div><div class="ln"><span>Momento estabilizador  Mp</span><b>'+fmt(FSb*Ma)+" kNm/m</b></div>"}
+ else{h+='<div class="ln"><span>Fuerzas y momentos</span><b>en equilibrio (λ = '+fmt(method==="spencer"?A.lamS:A.lamM,3)+")</b></div>"}
+ const f2=fsMain;h+='<div class="big '+(ok?"ok":"bad")+'">Factor de seguridad = '+fmt(f2,2)+(ok?" ≥ ":" < ")+fmt(st.fa,2)+'<br>Estabilidad del talud '+(ok?"ACEPTABLE":"NO ACEPTABLE")+"</div>";
+ if(fsMain>=50)h+='<div class="hint">Sin falla detectada: el momento deslizante es casi nulo.</div>';
+ h+='<div class="hint">'+(RES.cont?"Mínimo continuo (refinado)"+(RES.nodeFS!==null?" · mejor nodo de grilla: FS "+fmt(RES.nodeFS,3)+" (lo que reporta GEO5)":""):"Nodos de grilla con radio optimizado (como GEO5)")+"</div>";
+ $("verif").innerHTML=h}
+function renderMethods(){const{A,st}=RES;const rows=[["fell","Fellenius (Sueco)","Equilibrio de momentos; ignora fuerzas entre dovelas",A.fell],["bishop","Bishop simplificado","Equilibrio de momentos y fuerza vertical",A.bishop],["spencer","Spencer","Fuerzas y momentos; ángulo constante entre dovelas",A.spencer],["mp","Morgenstern-Price","Fuerzas y momentos; función seno entre dovelas",A.mp]];
+ let h='<table><tr><th>Método</th><th>Criterio</th><th>FS</th><th>Estado</th></tr>';
+ for(const r of rows){const v=r[3];h+="<tr><td>"+r[1]+"</td><td style='text-align:left;white-space:normal'>"+r[2]+"</td><td><b>"+fmt(v,3)+"</b></td><td>"+(v===null?'<span class="pill y">sin convergencia</span>':v>=st.fa?'<span class="pill g">cumple</span>':'<span class="pill r">no cumple</span>')+"</td></tr>"}
+ h+='</table><div class="hint">Todos sobre la superficie crítica del método elegido ('+MN[RES.method]+'). Spencer y Morgenstern-Price coinciden con GEO5 en el caso de la tarea (pestaña Validación).</div>';$("t1").innerHTML=h}
+function renderSlices(){const{S}=RES;let h='<table><tr><th>#</th><th>X [m]</th><th>Z base [m]</th><th>α [°]</th><th>W [kN/m]</th><th>u [kPa]</th><th>c [kPa]</th><th>φ [°]</th></tr>';
+ S.sl.forEach((d,i)=>{h+="<tr><td>"+(i+1)+"</td><td>"+fmt(d.xm)+"</td><td>"+fmt(d.y)+"</td><td>"+fmt(Math.asin(d.sa)*180/Math.PI,1)+"</td><td>"+fmt(d.W,1)+"</td><td>"+fmt(d.u,1)+"</td><td>"+fmt(d.c,1)+"</td><td>"+fmt(d.phi,1)+"</td></tr>"});$("t3").innerHTML=h+"</table>"}
+function renderWarn(){const{S,best,st,M,A}=RES,w=[];const g=st.grid,tol=1e-3;
+ if(st.mode==="grid"){const sx=g.nx>1?(g.x1-g.x0)/(g.nx-1):0,sz=g.nz>1?(g.z1-g.z0)/(g.nz-1):0;
+  if(Math.abs(S.cx-g.x0)<=Math.max(tol,sx*.55)||Math.abs(S.cx-g.x1)<=Math.max(tol,sx*.55)||Math.abs(S.cy-g.z0)<=Math.max(tol,sz*.55)||Math.abs(S.cy-g.z1)<=Math.max(tol,sz*.55))w.push("El centro crítico queda en el borde de la grilla. El mínimo real podría estar más allá: amplía la grilla.")}
+ if(S.cy-S.R<M.yb+0.3)w.push("La superficie casi toca la cota inferior del modelo. Baja la cota inferior para no limitar el resultado.");
+ if(S.xa-M.P[0][0]<0.2||M.P[M.P.length-1][0]-S.xb<0.2)w.push("La superficie llega al límite lateral del modelo. Amplía X inicial / X final.");
+ if(A.spencer===null)w.push("Spencer no convergió en esta superficie.");if(A.mp===null)w.push("Morgenstern-Price no convergió en esta superficie.");
+ if(RES.fsMain>=50)w.push("No hay deslizamiento detectable con estos datos.");
+ if(M.wt!==null&&M.wt>M.zmax)w.push("El nivel freático queda sobre el terreno; la página lo trata como si estuviera a nivel del terreno en cada dovela.");
+ if(A.bishop!==null&&A.fell!==null&&A.bishop-A.fell>0.4*A.bishop)w.push("Fellenius y Bishop difieren mucho: revisa la geometría y las presiones de poros.");
+ $("t4").innerHTML=w.length?w.map(x=>'<div class="warnbox">'+x+"</div>").join(""):'<div class="warnbox i">Sin advertencias.</div>'}
+function geoDiff(){const v=parseFloat($("geofs").value);if(!RES||!isFinite(v)){$("geodiff").textContent="";return}const d=(RES.A.bishop/v-1)*100;$("geodiff").innerHTML="Bishop página "+fmt(RES.A.bishop,3)+" → dif. <b>"+fmt(d,2)+" %</b>"}
+$("geofs").addEventListener("input",geoDiff);
+
+/* validación vs GEO5 sobre el caso de la tarea */
+function renderValidation(){const M=modelFrom(TASK);
+ let h='<div class="hint">Caso de la tarea (φ=33°, γ=2 T/m³, c=5 kPa). Los valores de GEO5 vienen de tus capturas de GEO5 2026; la página evalúa el mismo círculo con 200 dovelas. La página queda 0,1 a 0,3 % bajo GEO5 en FS (lado conservador); su Fa es 0,3 a 0,5 % mayor. Con la misma grilla, la página elige los mismos centros que GEO5 en los casos B y C. GEO5 reporta radios 0,1 m menores que el óptimo tangente al terreno bajo; es probable que su búsqueda de radio sea menos fina, lo que explica hasta 0,4 % más de FS.</div>';
+ h+='<table><tr><th>Círculo</th><th>Dato</th><th>GEO5</th><th>Página</th><th>Dif. %</th></tr>';
+ for(const c of CASES){const S=setup(M,c.cx,c.cy,c.R,200);if(!S)continue;const fs=c.m==="fell"?fellFS(S):bishopFS(S),Fa=S.drv,Ma=Fa*c.R,a1=Math.asin((S.xa-c.cx)/c.R)*180/Math.PI,a2=Math.asin((S.xb-c.cx)/c.R)*180/Math.PI,fg=c.Mp/c.Ma;
+  const rows=[["FS (Mp/Ma)",fg,fs,3],["Fa [kN/m]",c.Fa,Fa,2],["Ma [kNm/m]",c.Ma,Ma,1],["Mp [kNm/m]",c.Mp,fs*Ma,1],["α₁ [°]",c.a1,a1,2],["α₂ [°]",c.a2,a2,2]];
+  rows.forEach((r,i)=>{h+="<tr><td>"+(i?"":c.n+" · "+(c.m==="fell"?"Fellenius":"Bishop")+" · ("+fmt(c.cx)+"; "+fmt(c.cy)+"; R "+fmt(c.R)+")")+"</td><td>"+r[0]+"</td><td>"+fmt(r[1],r[3])+"</td><td>"+fmt(r[2],r[3])+"</td><td>"+fmt((r[2]/r[1]-1)*100,2)+"</td></tr>"})}
+ h+="</table>";
+ const cB=CASES[1],A=allMethods(M,cB.cx,cB.cy,cB.R,120);
+ h+='<h3 style="margin-top:14px">Métodos rigurosos sobre el círculo B</h3><div class="hint">GEO5 muestra el FS con 2 decimales: la comparación es válida dentro de ±0,005.</div><table><tr><th>Método</th><th>FS GEO5</th><th>FS página</th><th>Dif.</th><th>Estado</th></tr>';
+ for(const g of GEO2){const v=A[g.k],d=v===null?null:v-g.fs;h+="<tr><td>"+g.n+"</td><td>"+fmt(g.fs,2)+"</td><td>"+fmt(v,3)+"</td><td>"+fmt(d,3)+"</td><td>"+(d!==null&&Math.abs(d)<=0.0051?'<span class="pill g">dentro del redondeo</span>':'<span class="pill y">revisar</span>')+"</td></tr>"}
+ $("t2").innerHTML=h+"</table>"}
+
+function renderReport(){const{S,A,st,M,fsMain,method,best}=RES,f=(v,d)=>fmt(v,d),ok=fsMain>=st.fa;
+ let img="";try{img='<img alt="Perfil del talud" src="'+$("cv").toDataURL("image/png")+'">'}catch(e){}
+ let sl="";M.L.forEach((l,i)=>{sl+="<tr><td>"+l.name+"</td><td>"+f(l.g,2)+"</td><td>"+f(l.phiDeg,1)+"</td><td>"+f(l.c,1)+"</td></tr>"});
+ $("t5").innerHTML='<h2>Informe de estabilidad de taludes</h2><div class="hint">Generado con la réplica GEO5 · '+new Date().toLocaleDateString("es-CL")+'</div>'+img+
+ '<h4>Datos</h4><table><tr><th>Suelo</th><th>γ [kN/m³]</th><th>φ [°]</th><th>c [kPa]</th></tr>'+sl+"</table><div class='hint'>Terreno (X,Z): "+M.P.map(p=>"("+f(p[0],1)+"; "+f(p[1],1)+")").join(" ")+" · Cota inferior "+f(M.yb,1)+" m"+(M.wt!==null?" · Nivel freático "+f(M.wt,2)+" m":"")+(M.q?" · q = "+f(M.q,1)+" kPa":"")+"</div>"+
+ "<h4>Superficie crítica ("+MN[method]+")</h4><div>Centro ("+f(S.cx)+"; "+f(S.cy)+") m · R = "+f(S.R)+" m · α₁ = "+$("a1").value+"° · α₂ = "+$("a2").value+"°</div>"+
+ "<h4>Factores de seguridad</h4><div>Fellenius "+f(A.fell,3)+" · Bishop "+f(A.bishop,3)+" · Spencer "+f(A.spencer,3)+" · Morgenstern-Price "+f(A.mp,3)+"</div>"+
+ "<h4>Verificación</h4><div class='"+(ok?"ok":"bad")+"'><b>FS = "+f(fsMain,2)+(ok?" ≥ ":" < ")+f(st.fa,2)+" · Estabilidad "+(ok?"ACEPTABLE":"NO ACEPTABLE")+"</b></div>"+
+ "<div class='hint' style='margin-top:10px'>Herramienta de apoyo en validación contra GEO5; no reemplaza software certificado ni la revisión de un profesional.</div><div class='btns'><button class='sec' id='repcopy'>Copiar informe como texto</button></div>";
+ $("repcopy").onclick=()=>openDlg("Informe (texto)",reportText())}
+function reportText(){const{S,A,st,M,fsMain,method}=RES,f=fmt;
+ return["INFORME DE ESTABILIDAD DE TALUDES","Terreno (X,Z): "+M.P.map(p=>"("+f(p[0],1)+"; "+f(p[1],1)+")").join(" "),"Cota inferior: "+f(M.yb,1)+" m",
+ ...M.L.map(l=>"Suelo "+l.name+": γ="+f(l.g,2)+" kN/m³, φ="+f(l.phiDeg,1)+"°, c="+f(l.c,1)+" kPa"),
+ "Método: "+MN[method]+" | Centro ("+f(S.cx)+"; "+f(S.cy)+") R="+f(S.R)+" m",
+ "FS Fellenius="+f(A.fell,3)+" Bishop="+f(A.bishop,3)+" Spencer="+f(A.spencer,3)+" M-P="+f(A.mp,3),
+ "FS adoptado="+f(fsMain,2)+" (admisible "+f(st.fa,2)+") -> "+(fsMain>=st.fa?"ACEPTABLE":"NO ACEPTABLE")].join("\n")}
+
+/* ============ DIÁLOGO / EXPORTAR ============ */
+function openDlg(title,text,img){$("dlgbody").innerHTML="<h3>"+title+"</h3>"+(img?'<img alt="" src="'+img+'"><div class="hint">Clic derecho sobre la imagen → Guardar imagen como…</div>':'<textarea id="dlgta" readonly></textarea>');
+ if(!img)$("dlgta").value=text;$("dlgcopy").style.display=img?"none":"";$("dlgmsg").textContent="";$("dlg").classList.add("on");if(!img){$("dlgta").focus();$("dlgta").select()}}
+$("dlgclose").onclick=()=>$("dlg").classList.remove("on");
+$("dlgcopy").onclick=async()=>{const t=$("dlgta");t.select();try{await navigator.clipboard.writeText(t.value);$("dlgmsg").textContent="Copiado."}catch(e){$("dlgmsg").textContent="Selecciona el texto y copia con Ctrl+C."}};
+$("mSave").onclick=()=>openDlg("Proyecto (copia y guarda este texto en un archivo .json)",JSON.stringify(readState(),null,1));
+$("mOpen").onclick=()=>{openDlg("Abrir proyecto: pega el texto del proyecto y presiona Cargar","");$("dlgta").readOnly=false;$("dlgta").value="";$("dlgmsg").innerHTML="";
+ const b=document.createElement("button");b.className="pri";b.textContent="Cargar";b.onclick=()=>{try{const st=JSON.parse($("dlgta").value);writeState(st);$("dlg").classList.remove("on");markStale();analyze()}catch(e){$("dlgmsg").textContent="No pude leer ese texto."}};$("dlgmsg").parentNode.insertBefore(b,$("dlgclose"))};
+$("mPng").onclick=()=>{try{openDlg("Imagen del perfil","",$("cv").toDataURL("image/png"))}catch(e){}};
+$("mCsv").onclick=()=>{if(!RES){openDlg("Dovelas (CSV)","Primero presiona Analizar.");return}
+ const rows=["n;x_m;z_base_m;alpha_deg;W_kN_m;u_kPa;c_kPa;phi_deg"].concat(RES.S.sl.map((d,i)=>[i+1,d.xm.toFixed(3),d.y.toFixed(3),(Math.asin(d.sa)*180/Math.PI).toFixed(2),d.W.toFixed(2),d.u.toFixed(2),d.c,d.phi].join(";")));openDlg("Dovelas (CSV): copia y pega en Excel",rows.join("\n"))};
+$("mHelp").onclick=()=>{$("help").open=true;$("help").scrollIntoView({behavior:"smooth"})};
+$("mTask").onclick=()=>{writeState(TASK);markStale();analyze()};
+$("mNew").onclick=()=>{const t=JSON.parse(JSON.stringify(TASK));t.pts="0,0\n20,0\n40,0";t.soils[0].name="Suelo 1";writeState(t);markStale()};
+$("addsoil").onclick=()=>{const st=readState();const n=st.soils.length;if(n>=5)return;st.soils[n-1].bot=st.soils[n-1].bot||defaultBot(st);st.soils.push({name:"Suelo "+(n+1),g:st.soils[n-1].g,phi:30,c:0,bot:""});renderSoils(st.soils);markStale()};
+$("gen").onclick=()=>{const H=+$("gH").value,m=+$("gm").value,z0=+$("gz0").value,L1=+$("gL1").value,L2=+$("gL2").value;if(![H,m,z0,L1,L2].every(isFinite)||H<=0)return;
+ $("pts").value=[[0,z0],[L1,z0],[L1+H*m,z0+H],[L1+H*m+L2,z0+H]].map(p=>p[0]+","+p[1]).join("\n");$("xmin").value=0;$("xmax").value=Math.ceil(L1+H*m+L2+5);$("yb").value=Math.max(0,z0-H);markStale();autoGrid()};
+function autoGrid(){const M=modelFrom(readState());if(M.err.length)return;const xa=M.P[0][0],xb=M.P[M.P.length-1][0],Lx=xb-xa,H=Math.max(1,M.zmax-M.zmin);
+ $("gx0").value=(xa+.1*Lx).toFixed(1);$("gx1").value=(xb-.1*Lx).toFixed(1);$("gz0b").value=(M.zmax+.1*H).toFixed(1);$("gz1").value=(M.zmax+2.5*H).toFixed(1);$("gnx").value=Math.min(45,Math.max(2,Math.round($("gx1").value-$("gx0").value)+1));$("gnz").value=Math.min(45,Math.max(2,Math.round($("gz1").value-$("gz0b").value)+1))}
+$("auto").onclick=()=>{autoGrid();markStale()};
+$("gridbtn").onclick=()=>{$("gridsec").open=true;$("gridsec").scrollIntoView({behavior:"smooth",block:"center"})};
+$("run").onclick=()=>{$("run").textContent="Calculando…";setTimeout(()=>{analyze();$("run").textContent="Analizar"},20)};
+$("refbtn").onclick=()=>{if(!RES){analyze();return}$("refbtn").textContent="Refinando…";setTimeout(()=>{analyze({refineOnly:true});$("refbtn").textContent="Refinar cuadrícula"},20)};
+$("tabs").addEventListener("click",e=>{const t=e.target.dataset.t;if(!t)return;document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b===e.target));document.querySelectorAll(".tabpane").forEach(p=>p.classList.toggle("on",p.id===t))});
+document.querySelector(".side").addEventListener("input",()=>markStale());
+const EXS={
+ ej1:{pts:"0,0\n10,0\n16,6\n21,6\n27,0\n37,0",xmin:0,xmax:37,yb:-10,unit:"kN",soils:[{name:"Terraplén SP-SM",g:17,phi:30,c:2.9,bot:"0,0\n37,0"},{name:"Fundación GW",g:19,phi:36,c:0,bot:""}],wt:0,q:50,q0:16,q1:21,kh:0.267,
+  grid:{x0:18,x1:34,z0:8,z1:24,nx:33,nz:25,nr:60,restrict:false,cont:true}},
+ ej2:{pts:"0,0\n15,0\n27,8\n36,8\n48,0\n63,0",xmin:0,xmax:63,yb:-15,unit:"kN",soils:[{name:"Terraplén GP-GM",g:20,phi:37,c:0,bot:"0,0\n63,0"},{name:"Fundación CH (no drenada)",g:14.5,phi:0,c:18.5,bot:""}],wt:0,q:30,q0:27,q1:36,kh:0.2,
+  grid:{x0:24,x1:58,z0:4,z1:45,nx:33,nz:25,nr:60,restrict:false,cont:true}}};
+function loadEx(k){const e=EXS[k];if(!e)return;const st=Object.assign({},TASK,e,{nsFinal:60,rmin:2,method:"bishop",mode:"grid",sit:"perm",fa:1.5,fix:TASK.fix});writeState(st);onSit();markStale()}
+function onSit(){const sis=$("sit").value==="seis";$("kh").disabled=!sis;$("fa").value=sis?1.1:1.5}
+$("sit").addEventListener("change",()=>{onSit();markStale()});
+["method","mode","fa","cx","cz","rad"].forEach(id=>$(id).addEventListener("change",()=>{if(id==="fa"&&RES){render()}else markStale()}));
+addEventListener("resize",()=>draw());
+$("exsel").addEventListener("change",()=>{if($("exsel").value){loadEx($("exsel").value);$("exsel").value=""}});
+/* arranque */
+let init=TASK;writeState(init);renderValidation();analyze();
+</script></body></html>
